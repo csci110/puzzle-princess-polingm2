@@ -107,7 +107,7 @@ class TicTacToe extends Sprite {
         }
         return false;
     }
-    unmarkSquare(row, col){
+    unmarkSquare(row, col) {
         this.dataModel[row][col] = this.emptySquareSymbol;
     }
 
@@ -128,6 +128,7 @@ class Marker extends Sprite {
     playInSquare(row, col) {
         this.x = this.board.x + col * this.board.squareSize + this.board.squareSize / 2 - this.width / 2;
         this.y = this.board.y + row * this.board.squareSize + this.board.squareSize / 2 - this.height / 2;
+        console.log(row, col);
         this.board.dataModel[row][col] = this.squareSymbol;
         this.board.debugBoard();
         this.inBoard = true;
@@ -158,8 +159,8 @@ class PrincessMarker extends Marker {
         this.dragging = false;
         let row = Math.floor((game.getMouseY() - this.board.y) / this.board.squareSize);
         let col = Math.floor((game.getMouseX() - this.board.x) / this.board.squareSize);
-        if (row < 0 || row >= this.board.size || col < 0 || col >= this.board.size
-        || this.board.getSquareSymbol(row, col) !== this.board.emptySquareSymbol) {
+        if (row < 0 || row >= this.board.size || col < 0 || col >= this.board.size ||
+            this.board.getSquareSymbol(row, col) !== this.board.emptySquareSymbol) {
             this.x = this.startX;
             this.y = this.startY;
             return;
@@ -188,6 +189,15 @@ class StrangerMarker extends Marker {
     }
 
     findWinningMove() {
+        for (let row = 0; row < this.size; row = row + 1) {
+            for (let col = 0; col < this.size; col = col + 1) {
+                if(this.board.markSquare(row, col)){
+                    if(this.gameIsWon()){
+                        this.board.playInSquare();
+                    }
+                }
+            }
+        }    
         return false;
     }
 
@@ -197,21 +207,85 @@ class StrangerMarker extends Marker {
 
     findCenterMove() {
         let center = Math.floor(this.board.size / 2);
-        if(this.board.markSquare()){
-           this.playInSquare(center, center); 
+        if (this.board.markSquare(center, center)) {
+            this.playInSquare(center, center);
+            return true;
         }
         return false;
     }
 
     findOppositeCornerMove() {
+        let last = this.board.size - 1;
+        if (this.board.getSquareSymbol(0, 0) !== this.squareSymbol 
+        && this.board.getSquareSymbol(0, 0)  !== this.board.emptySquareSymbol 
+        && this.board.markSquare(last, last)) {
+            this.playInSquare(last, last);
+            return true;
+        }
+        if (this.board.getSquareSymbol(last, last) !== this.squareSymbol 
+        && this.board.getSquareSymbol(last, last) !== this.board.emptySquareSymbol 
+        && this.board.markSquare(0, 0) ) {
+            this.playInSquare(0, 0);
+            return true;
+        }
+        if (this.board.getSquareSymbol(last, 0) !== this.squareSymbol 
+        && this.board.getSquareSymbol(last, 0) !== this.board.emptySquareSymbol
+        && this.board.markSquare(0, last)) {
+            this.playInSquare(0, last);
+            return true;
+        }
+        if (this.board.getSquareSymbol(0, last) !== this.squareSymbol 
+        && this.board.getSquareSymbol(0, last) !== this.board.emptySquareSymbol 
+        && this.board.markSquare(last, 0)) {
+            this.playInSquare(last, 0);
+            return true;
+        }
         return false;
     }
 
     findAnyCornerMove() {
+        let last = this.board.size - 1;
+        if (this.board.markSquare(last, last)) {
+            this.playInSquare(last, last);
+            return true;
+        }
+        if (this.board.markSquare(0, 0)) {
+            this.playInSquare(0, 0);
+            return true;
+        }
+        if (this.board.markSquare(0, last)) {
+            this.playInSquare(0, last);
+            return true;
+        }
+        if (this.board.markSquare(last, 0)) {
+            this.playInSquare(last, 0);
+            return true;
+        }
         return false;
     }
 
     findAnySideMove() {
+        let last = this.board.size - 1;
+        for (let col = 1; col < last; col++) {
+            if (this.board.markSquare(0, col)) {
+                this.playInSquare(0, col);
+                return true;
+            }
+            if (this.board.markSquare(last, col)) {
+                this.playInSquare(last, col);
+                return true;
+            }
+        }
+        for (let row = 1; row < last; row++) {
+            if (this.board.markSquare(row, 0)) {
+                this.playInSquare(row, 0);
+                return true;
+            }
+            if (this.board.markSquare(row, last)) {
+                this.playInSquare(row, last);
+                return true;
+            }
+        }
         return false;
     }
     handleGameLoop() {
@@ -220,14 +294,7 @@ class StrangerMarker extends Marker {
 
         }
 
-        let row, col;
-        do {
-            row = Math.round(Math.random() * (this.board.size - 1));
-            col = Math.round(Math.random() * (this.board.size - 1));
-        } while (this.board.dataModel[row][col] !== this.board.emptySquareSymbol);
-        this.board.dataModel[row][col] = this.squareSymbol;
-        this.playInSquare(row, col);
-        this.board.takeTurns();
+
         let foundMove = this.findWinningMove();
 
         if (!foundMove) {
@@ -259,10 +326,19 @@ class StrangerMarker extends Marker {
         }
 
         if (!foundMove) {
-            // Mark a random empty square.
+            let row, col;
+            do {
+                row = Math.round(Math.random() * (this.board.size - 1));
+                col = Math.round(Math.random() * (this.board.size - 1));
+            } while (this.board.dataModel[row][col] !== this.board.emptySquareSymbol);
+            //this.board.dataModel[row][col] = this.squareSymbol;
+            this.playInSquare(row, col);
+            //this.board.takeTurns(); // Mark a random empty square.
+            foundMove = true;
         }
 
-        //if (!foundMove) throw new Error('Failed to find a move.');
+        if (!foundMove) throw new Error('Failed to find a move.');
+        this.board.takeTurns();
     }
 
 }
